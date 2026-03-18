@@ -1,0 +1,11 @@
+
+{
+  "type":"FeatureCollection",
+  "features":[
+    {
+      "type":"Feature",
+      "properties":{"name":"OSM Greenhouse A","osm_url":"https://www.openstreetmap.org/"},
+      "geometry":{"type":"Point","coordinates":[-85.715,35.668]}
+    }
+  ]
+}
