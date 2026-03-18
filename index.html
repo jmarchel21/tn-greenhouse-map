@@ -6,10 +6,14 @@
   <title>Tennessee Greenhouse Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Mapbox GL -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet"pbox.com/mapbox-gl-js/v2.l.js</script>
+  https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css
+  https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js</script>
   <!-- deck.gl -->
-  <script src="https://unpkg.com/deck.gl@8.9.s</script>
-  <link rel="stylesheet" href<!-- Sidebar -->
+  https://unpkg.com/deck.gl@8.9.36/dist.min.js</script>
+  style.css
+</head>
+<body>
+  <!-- Sidebar -->
   <div id="sidebar">
     <h2>TN Greenhouse Map</h2>
 
@@ -47,8 +51,7 @@
 
   <script>
     // 1) Paste your Mapbox public token here (starts with pk.)
-    // Do NOT paste secret tokens (sk.*).
-    const MAPBOX_TOKEN = pk.eyJ1Ijoiam1hcmNoZWwyMSIsImEiOiJjbW13MmVoNnUwdWZyMnNwcm44eGQ0NGRkIn0.PAxHRml2zcBD9LEC-1xA8w;
+    const MAPBOX_TOKEN = 'pk.YOUR_PUBLIC_TOKEN_HERE';
 
     // 2) Initial view (centered on Tennessee)
     const INITIAL_VIEW_STATE = { longitude: -86.6, latitude: 35.8, zoom: 6, pitch: 0, bearing: 0 };
@@ -177,7 +180,7 @@
         onClick: info => {
           if (!info.object) return;
           const p = info.object.properties || {};
-          const link = p.osm_url ? `<div><a href="${p.osm_url}"M</a></div>` : '';
+          const link = p.osm_url ? `<div><a href="${p.osm_url}" targetdiv>` : '';
           new mapboxgl.Popup({ closeButton: true })
             .setLngLat(info.coordinate)
             .setHTML(`
