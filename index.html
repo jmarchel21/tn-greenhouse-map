@@ -1,12 +1,231 @@
 
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>TN Map Test</title>
-  </head>
-  <body>
-    <h1>Your GitHub Pages site is working!</h1>
-    <p>Once you see this message, we can safely paste the full Mapbox map viewer.</p>
-  </body>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tennessee Greenhouse Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Mapbox GL -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet"pbox.com/mapbox-gl-js/v2.l.js</script>
+  <!-- deck.gl -->
+  <script src="https://unpkg.com/deck.gl@8.9.s</script>
+  <link rel="stylesheet" href<!-- Sidebar -->
+  <div id="sidebar">
+    <h2>TN Greenhouse Map</h2>
+
+    <div class="group">
+      <h3>Overlays</h3>
+      <label><input type="checkbox" id="toggle-verified" checked /> Verified (NAIP‑Confirmed)</label>
+      <label><input type="checkbox" id="toggle-provisional" checked /> Provisional (Likely Post‑2021 Build)</label>
+      <label><input type="checkbox" id="toggle-lowconf" /> Low‑Confidence (Ambiguous)</label>
+      <label><input type="checkbox" id="toggle-osm" checked /> OSM‑Mapped Greenhouses</label>
+      <label><input type="checkbox" id="toggle-notosm" checked /> Detected but NOT in OSM</label>
+    </div>
+
+    <div class="group">
+      <h3>Legend — Greenhouse Concentration</h3>
+      <p class="legend-title">% cover in 1 km² window</p>
+      <div class="swatches">
+        <div><span class="swatch" style="background:#F0F0F0"></span>No Signal (0%)</div>
+        <div><span class="swatch" style="background:#FEE8C8"></span>Trace (>0–0.5%)</div>
+        <div><span class="swatch" style="background:#FDBB84"></span>Low (>0.5–2%)</div>
+        <div><span class="swatch" style="background:#FC8D59"></span>Moderate (>2–5%)</div>
+        <div><span class="swatch" style="background:#EF6548"></span>High (>5–10%)</div>
+        <div><span class="swatch" style="background:#D7301F"></span>Very High (>10%)</div>
+      </div>
+      <p class="legend-note">
+        Solid = Verified on NAIP (2021).<br/>
+        ◤ Hatch = Provisional (likely built after 2021).<br/>
+        ⋯ Dotted outline = Low‑confidence.<br/>
+        ● Green = OSM‑mapped. ◯ Yellow = Detected, not in OSM.
+      </p>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <script>
+    // 1) Paste your Mapbox public token here (starts with pk.)
+    // Do NOT paste secret tokens (sk.*).
+    const MAPBOX_TOKEN = 'pk.YOUR_PUBLIC_TOKEN_HERE';
+
+    // 2) Initial view (centered on Tennessee)
+    const INITIAL_VIEW_STATE = { longitude: -86.6, latitude: 35.8, zoom: 6, pitch: 0, bearing: 0 };
+
+    // 3) Initialize Mapbox
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
+      zoom: INITIAL_VIEW_STATE.zoom
+    });
+
+    // 4) deck.gl overlay for high‑performance layers
+    const overlay = new deck.MapboxOverlay({ interleaved: true, layers: [] });
+    map.addControl(overlay);
+
+    // 5) Data paths (sample files now; replace with statewide data later using same filenames)
+    const DATA_PATHS = {
+      heatmap: 'data/heatmap_grid.geojson',
+      polygons: 'data/greenhouse_polygons.geojson',
+      osm: 'data/osm_greenhouses.geojson',
+      notosm: 'data/detected_not_osm.geojson'
+    };
+
+    // 6) Color ramp that matches the legend
+    function colorForPct(p) {
+      if (p <= 0) return [240,240,240,255];     // No Signal
+      if (p <= 0.5) return [254,232,200,220];   // Trace
+      if (p <= 2) return [253,187,132,220];     // Low
+      if (p <= 5) return [252,141,89,220];      // Moderate
+      if (p <= 10) return [239,101,72,220];     // High
+      return [215,48,31,220];                   // Very High
+    }
+
+    // 7) Build deck.gl layers
+    function buildLayers(opts) {
+      const layers = [];
+
+      // Heatmap grid (choropleth polygons)
+      layers.push(new deck.GeoJsonLayer({
+        id: 'heatmap-grid',
+        data: DATA_PATHS.heatmap,
+        filled: true,
+        stroked: false,
+        pickable: true,
+        getFillColor: f => colorForPct(f.properties?.pct || 0),
+        onHover: info => {
+          let el = document.getElementById('map-tooltip');
+          if (!el) {
+            el = document.createElement('div');
+            el.id = 'map-tooltip';
+            el.className = 'tooltip';
+            document.body.appendChild(el);
+          }
+          if (info.object && info.coordinate) {
+            const pct = (info.object.properties?.pct ?? 0).toFixed(2);
+            el.innerHTML = `<strong>${pct}% cover</strong>`;
+            el.style.display = 'block';
+            el.style.left = info.x + 12 + 'px';
+            el.style.top = info.y + 12 + 'px';
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      }));
+
+      // 3D greenhouse polygons (colored by confidence)
+      layers.push(new deck.GeoJsonLayer({
+        id: 'greenhouse-3d',
+        data: DATA_PATHS.polygons,
+        extruded: true,
+        wireframe: false,
+        elevationScale: 1,
+        getElevation: f => (f.properties?.elev || 5), // meters, just for visual pop
+        getFillColor: f => {
+          const c = f.properties?.confidence;
+          if (c === 'verified')    return [0, 120, 255, 180];    // blue
+          if (c === 'provisional') return [255, 165, 0, 150];    // orange
+          if (c === 'low')         return [128, 128, 128, 120];  // gray
+          return [60, 60, 60, 100];
+        },
+        getLineColor: [255,255,255,160],
+        lineWidthMinPixels: 1,
+        pickable: true,
+        visible: opts.showVerified || opts.showProvisional || opts.showLowConf,
+        onClick: info => {
+          if (!info.object) return;
+          const p = info.object.properties || {};
+          new mapboxgl.Popup({ closeButton: true })
+            .setLngLat(info.coordinate)
+            .setHTML(`
+              <div class="popup">
+                <div><b>Status:</b> ${p.confidence || 'n/a'}</div>
+                <div><b>Source:</b> ${p.source || 'detected'}</div>
+                <div><b>Area (m²):</b> ${p.area_m2 || '—'}</div>
+              </div>`)
+            .addTo(map);
+        },
+        updateTriggers: {
+          visible: [opts.showVerified, opts.showProvisional, opts.showLowConf]
+        },
+        getFilterValue: f => {
+          const c = f.properties?.confidence;
+          if (c === 'verified'    && !opts.showVerified)    return 0;
+          if (c === 'provisional' && !opts.showProvisional) return 0;
+          if (c === 'low'         && !opts.showLowConf)     return 0;
+          return 1;
+        },
+        filterRange: [1, 1]
+      }));
+
+      // OSM‑mapped features (points/polygons)
+      layers.push(new deck.GeoJsonLayer({
+        id: 'osm-layer',
+        data: DATA_PATHS.osm,
+        filled: true,
+        stroked: true,
+        getFillColor: [0, 180, 90, 180],
+        getLineColor: [0, 100, 50, 220],
+        pointType: 'circle',
+        getPointRadius: 60,
+        lineWidthMinPixels: 1.5,
+        pickable: true,
+        visible: opts.showOSM,
+        onClick: info => {
+          if (!info.object) return;
+          const p = info.object.properties || {};
+          const link = p.osm_url ? `<div><a href="${p.osm_url}"M</a></div>` : '';
+          new mapboxgl.Popup({ closeButton: true })
+            .setLngLat(info.coordinate)
+            .setHTML(`
+              <div class="popup">
+                <div><b>OSM Feature</b></div>
+                <div>Name: ${p.name || '—'}</div>
+                ${link}
+              </div>`)
+            .addTo(map);
+        }
+      }));
+
+      // Detected but NOT in OSM (polygons or centroids)
+      layers.push(new deck.GeoJsonLayer({
+        id: 'not-osm-layer',
+        data: DATA_PATHS.notosm,
+        filled: false,
+        stroked: true,
+        getLineColor: [255, 205, 0, 220],
+        getLineWidth: 2,
+        pointType: 'circle',
+        getPointRadius: 80,
+        pickable: true,
+        visible: opts.showNotOSM
+      }));
+
+      return layers;
+    }
+
+    // 8) Toggle state + wiring
+    const state = {
+      showVerified: true,
+      showProvisional: true,
+      showLowConf: false,
+      showOSM: true,
+      showNotOSM: true
+    };
+
+    function refresh() { overlay.setProps({ layers: buildLayers(state) }); }
+
+    document.getElementById('toggle-verified').addEventListener('change', e => { state.showVerified = e.target.checked; refresh(); });
+    document.getElementById('toggle-provisional').addEventListener('change', e => { state.showProvisional = e.target.checked; refresh(); });
+    document.getElementById('toggle-lowconf').addEventListener('change', e => { state.showLowConf = e.target.checked; refresh(); });
+    document.getElementById('toggle-osm').addEventListener('change', e => { state.showOSM = e.target.checked; refresh(); });
+    document.getElementById('toggle-notosm').addEventListener('change', e => { state.showNotOSM = e.target.checked; refresh(); });
+
+    // 9) Kick off rendering after map loads
+    map.on('load', () => refresh());
+  </script>
+</body>
 </html>
