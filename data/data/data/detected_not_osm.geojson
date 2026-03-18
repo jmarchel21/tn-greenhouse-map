@@ -1,0 +1,13 @@
+
+{
+  "type":"FeatureCollection",
+  "features":[
+    {
+      "type":"Feature",
+      "properties":{"note":"Detected cluster not in OSM"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-85.695,35.675],[-85.685,35.675],[-85.685,35.665],[-85.695,35.665],[-85.695,35.675]
+      ]]}
+    }
+  ]
+}
