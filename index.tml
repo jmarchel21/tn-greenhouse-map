@@ -1,0 +1,9 @@
+tn-greenhouse-map
+├── README.md
+├── index.html
+├── style.css
+└── data/
+    ├── heatmap_grid.geojson
+    ├── greenhouse_polygons.geojson
+    ├── osm_greenhouses.geojson
+    └── detected_not_osm.geojson
