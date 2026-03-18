@@ -49,7 +49,7 @@
 
   <script>
     // 1) Paste your Mapbox public token here (starts with pk.)
-    const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam1hcmNoZWwyMSIsImEiOiJjbW13MmVoNnUwdWZyMnNwcm44eGQ0NGRkIn0.PAxHRml2zcBD9LEC-1xA8w';
+    const MAPBOX_TOKEN = pk.eyJ1Ijoiam1hcmNoZWwyMSIsImEiOiJjbW13MmVoNnUwdWZyMnNwcm44eGQ0NGRkIn0.PAxHRml2zcBD9LEC-1xA8w;
 
     // 2) Initial view (Tennessee)
     const INITIAL_VIEW_STATE = { longitude: -86.6, latitude: 35.8, zoom: 6, pitch: 0, bearing: 0 };
