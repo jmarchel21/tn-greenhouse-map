@@ -19,3 +19,7 @@ label { display:block; margin:6px 0; cursor:pointer; font-size:13px; }
 }
 .popup { font-size:13px; }
 
+<div id="sidebar">…</div>
+<div id="map"></div>
+``
+
